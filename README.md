@@ -6,6 +6,7 @@ from any URL and build your own container images.
 * Provide friendly CLI to build and provision different types of images.
 * Uses base images from any URL in internet
 * Allow to export only the diff between the base image and whatever is provisioned inside the container.
+* Linux and OS X support only.
 
 ### Tasks
 * If running on linux, check whether the kernel supports overlayfs or not. Use host by default.
