@@ -98,11 +98,25 @@ func writeSSHKeys() {
 func main() {
 	flag.Parse()
 
-	if len(os.Args) < 2 {
-		flag.Usage()
-		os.Exit(0)
+	// if len(os.Args) < 2 {
+	// 	flag.Usage()
+	// 	os.Exit(0)
+	// }
+
+	var p XHyveParams
+	p.VCPUs = 1
+	p.Memory = "1024"
+	p.ACPI = new(bool)
+	*p.ACPI = true
+	p.PCIDevs = []string{"0:0,hostbridge", "2:0,virtio-net", "31,lpc"}
+	p.LPCDevs = "com1"
+	p.BootParams = `kexec,imgs/alpha.801.0.0.coreos_production_pxe.vmlinuz,imgs/stable.766.3.0.coreos_production_pxe_image.cpio.gz,"earlyprintk=serial console=ttyS0 coreos.autologin cloud-config=https://raw.githubusercontent.com/coreos/coreos-xhyve/master/cloud-init/docker-only.txt"`
+
+	if err := RunXHyve(p); err != nil {
+		panic(err)
 	}
 
+	fmt.Println("-----------------> Boom!")
 	//writeSSHKeys()
 	//downloadHostOS()
 	//bootHostOS()

@@ -2,13 +2,17 @@
 
 package main
 
-// #cgo CFLAGS: -I${SRCDIR}/vendor/xhyve/include
+// #cgo CFLAGS: -I${SRCDIR}/vendor/xhyve/include -x c -std=c11 -fno-common -arch x86_64 -DXHYVE_CONFIG_ASSERT -Os -fstrict-aliasing -Weverything -Wno-unknown-warning-option -pedantic -fmessage-length=152 -fdiagnostics-show-note-include-stack -fmacro-backtrace-limit=0 -g
 // #cgo LDFLAGS: -L${SRCDIR} -lxhyve -arch x86_64 -framework Hypervisor -framework vmnet -all_load
 // #include "helper.h"
 import "C"
 
+// -Os -flto -fstrict-aliasing -Weverything -Werror -Wno-unknown-warning-option -Wno-reserved-id-macro -pedantic -fmessage-length=152 -fdiagnostics-show-note-include-stack -fmacro-backtrace-limit=0 -fcolor-diagnostics
+// -Xlinker -object_path_lto
 import (
 	"errors"
+	"fmt"
+	"os/signal"
 	"runtime"
 	"strconv"
 	"unsafe"
@@ -55,7 +59,7 @@ type XHyveParams struct {
 	// Example: []string{"2:0,virtio-net", "0:0,hostbridge"}
 	PCIDevs []string
 	// LPC devices to attach to the guest vm.
-	LPCDevs []string // -l com1,stdio
+	LPCDevs string // -l com1,stdio
 	// Whether to create ACPI tables or not.
 	ACPI *bool
 	// Universal identifier for the guest vm.
@@ -81,21 +85,6 @@ func setDefaults(p *XHyveParams) {
 	if memsize < 256 || err != nil {
 		p.Memory = "256"
 	}
-
-	// if len(p.PCISlots) == 0 {
-	// 	p.PCISlots = []string{
-	// 		"2:0,virtio-net",
-	// 		"0:0,hostbridge",
-	// 		"31,lpc",
-	// 	}
-	// }
-	//
-	// if len(p.LPCDevs) == 0 {
-	// 	p.LPCDevs = []string{
-	// 		"com1",
-	// 		"stdio",
-	// 	}
-	// }
 
 	if p.UUID == "" {
 		p.UUID = uuid.NewV4().String()
@@ -136,13 +125,10 @@ func RunXHyve(p XHyveParams) error {
 		}
 	}
 
-	for _, d := range p.LPCDevs {
-		device := C.CString(d)
-		// defer is not adviced to have within a loop but we are not expecting a lot of PCI devices.
-		defer C.free(unsafe.Pointer(device))
-		if err := C.lpc_device_parse(device); err != 0 {
-			return ErrLPCDevice
-		}
+	devices := C.CString(p.LPCDevs)
+	defer C.free(unsafe.Pointer(devices))
+	if err := C.lpc_device_parse(devices); err != 0 {
+		return ErrLPCDevice
 	}
 
 	bootParams := C.CString(p.BootParams)
@@ -218,6 +204,9 @@ func RunXHyve(p XHyveParams) error {
 	var rip C.uint64_t
 	C.vcpu_add(bsp, bsp, rip)
 
+	signal.Ignore()
+
+	fmt.Println("Starting hypervisor busy loop...")
 	C.mevent_dispatch()
 
 	return nil

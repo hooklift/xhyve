@@ -11,7 +11,7 @@ LDFLAGS 	:= -ldflags "-X main.Version=$(VERSION) -X main.Name=$(NAME)"
 
 build: libxhyve.a
 	@echo "$(OK_COLOR)------> Running go build...$(NO_COLOR)"
-	go build $(LDFLAGS) -o $(NAME)
+	go build -x $(LDFLAGS) -o $(NAME)
 
 # This is so the linker doesn't complain given that CGO is already defining a
 # main function.
