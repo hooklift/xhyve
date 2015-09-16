@@ -21,7 +21,13 @@ from any URL and build your own images.
 * Return container back to user
 
 ### CLI
-nnn -base https://github.com/hooklift/stack/releases/download/v1.0.1/hooklift-stack-v1.0.1.tar.gz -aci -o mycontainer provisioner.sh
+```
+nnn -base https://github.com/hooklift/stack/releases/download/v1.0.1/hooklift-stack-v1.0.1.tar.gz \
+-aci -o mycontainer provisioner.sh
+....
+....
+output: mycontainer.tar.gz
+```
 
 Image formats supported:
 * Docker (-docker)
