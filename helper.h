@@ -1,10 +1,10 @@
 #ifndef helpers_h
 #define helpers_h 1
 
-#include <stddef.h>
 #include <errno.h>
 #include <inttypes.h>
 #include <ctype.h>
+#include <stdlib.h>
 
 #include <xhyve/acpi.h>
 #include <xhyve/vmm/vmm_api.h>

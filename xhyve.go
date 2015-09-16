@@ -10,13 +10,14 @@ import "C"
 import (
 	"errors"
 	"strconv"
+	"unsafe"
 
 	"github.com/satori/go.uuid"
 )
 
 var (
-	// ErrPCISlots is returned when an error was found parsing PCI slots.
-	ErrPCISlots = errors.New("error parsing PCI slots")
+	// ErrPCIDevice is returned when an error was found parsing PCI devices.
+	ErrPCIDevice = errors.New("error parsing PCI device")
 	// ErrLPCDevice is returned when an error was found parsing LPC device options.
 	ErrLPCDevice = errors.New("error parsing LPC devices")
 	// ErrInvalidMemsize is returned if memorize size is invalid.
@@ -46,11 +47,12 @@ var (
 // XHyveParams defines parameters needed by xhyve to boot up virtual machines.
 type XHyveParams struct {
 	// Number of CPUs to assigned to the guest vm.
-	Nvcpus int
+	VCPUs int
 	// Memory in megabytes to assign to guest vm.
 	Memory string
-	// PCI Slots to attach to the guest vm.
-	PCISlots []string // 2:0,virtio-net or
+	// PCI devices to attach to the guest vm, including bus and slot.
+	// Example: []string{"2:0,virtio-net", "0:0,hostbridge"}
+	PCIDevs []string
 	// LPC devices to attach to the guest vm.
 	LPCDevs []string // -l com1,stdio
 	// Whether to create ACPI tables or not.
@@ -70,8 +72,8 @@ type XHyveParams struct {
 }
 
 func setDefaults(p *XHyveParams) {
-	if p.Nvcpus < 1 {
-		p.Nvcpus = 1
+	if p.VCPUs < 1 {
+		p.VCPUs = 1
 	}
 
 	memsize, err := strconv.Atoi(p.Memory)
@@ -79,20 +81,20 @@ func setDefaults(p *XHyveParams) {
 		p.Memory = "256"
 	}
 
-	if len(p.PCISlots) == 0 {
-		p.PCISlots = []string{
-			"2:0,virtio-net",
-			"0:0,hostbridge",
-			"31,lpc",
-		}
-	}
-
-	if len(p.LPCDevs) == 0 {
-		p.LPCDevs = []string{
-			"com1",
-			"stdio",
-		}
-	}
+	// if len(p.PCISlots) == 0 {
+	// 	p.PCISlots = []string{
+	// 		"2:0,virtio-net",
+	// 		"0:0,hostbridge",
+	// 		"31,lpc",
+	// 	}
+	// }
+	//
+	// if len(p.LPCDevs) == 0 {
+	// 	p.LPCDevs = []string{
+	// 		"com1",
+	// 		"stdio",
+	// 	}
+	// }
 
 	if p.UUID == "" {
 		p.UUID = uuid.NewV4().String()
@@ -120,24 +122,35 @@ func setDefaults(p *XHyveParams) {
 func RunXHyve(p XHyveParams) error {
 	setDefaults(&p)
 
-	for _, s := range p.PCISlots {
-		if err := C.pci_parse_slot(C.CString(s)); err != 0 {
-			return ErrPCISlots
+	for _, d := range p.PCIDevs {
+		device := C.CString(d)
+		// defer is not adviced to have within a loop but we are not expecting a lot of PCI devices.
+		defer C.free(unsafe.Pointer(device))
+		if err := C.pci_parse_slot(device); err != 0 {
+			return ErrPCIDevice
 		}
 	}
 
-	for _, l := range p.LPCDevs {
-		if err := C.lpc_device_parse(C.CString(l)); err != 0 {
+	for _, d := range p.LPCDevs {
+		device := C.CString(d)
+		// defer is not adviced to have within a loop but we are not expecting a lot of PCI devices.
+		defer C.free(unsafe.Pointer(device))
+		if err := C.lpc_device_parse(device); err != 0 {
 			return ErrLPCDevice
 		}
 	}
 
 	var memsize C.size_t
-	if err := C.parse_memsize(C.CString(p.Memory), &memsize); err != 0 {
+	reqMemsize := C.CString(p.Memory)
+	defer C.free(unsafe.Pointer(reqMemsize))
+	if err := C.parse_memsize(reqMemsize, &memsize); err != 0 {
 		return ErrInvalidMemsize
 	}
 
-	if err := C.firmware_parse(C.CString(p.BootParams)); err != 0 {
+	bootParams := C.CString(p.BootParams)
+	defer C.free(unsafe.Pointer(bootParams))
+
+	if err := C.firmware_parse(bootParams); err != 0 {
 		return ErrInvalidBootParams
 	}
 
@@ -146,7 +159,7 @@ func RunXHyve(p XHyveParams) error {
 	}
 
 	maxVCPUs := C.num_vcpus_allowed()
-	if C.int(p.Nvcpus) > maxVCPUs {
+	if C.int(p.VCPUs) > maxVCPUs {
 		return ErrMaxNumVCPUExceeded
 	}
 
@@ -180,7 +193,7 @@ func RunXHyve(p XHyveParams) error {
 	}
 
 	if *p.MPTGen {
-		if err := C.mptable_build(C.int(p.Nvcpus)); err != 0 {
+		if err := C.mptable_build(C.int(p.VCPUs)); err != 0 {
 			return ErrBuildingMPTTable
 		}
 	}
@@ -190,7 +203,7 @@ func RunXHyve(p XHyveParams) error {
 	}
 
 	if *p.ACPI {
-		if err := C.acpi_build(C.int(p.Nvcpus)); err != 0 {
+		if err := C.acpi_build(C.int(p.VCPUs)); err != 0 {
 			return ErrBuildingACPI
 		}
 	}
