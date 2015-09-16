@@ -54,19 +54,19 @@ type XHyveParams struct {
 	// LPC devices to attach to the guest vm.
 	LPCDevs []string // -l com1,stdio
 	// Whether to create ACPI tables or not.
-	ACPI bool
+	ACPI *bool
 	// Universal identifier for the guest vm.
 	UUID string
-	// Whether to use UTC offset or localtime
-	UTC bool
+	// Whether to use localtime or UTC in Real Time Clock.
+	RTCLocaltime *bool
 	// Either kexec or fbsd params. Format:
 	// kexec,kernel image,initrd,"cmdline"
 	// fbsd,userboot,boot volume,"kernel env"
 	BootParams string
 	// Whether to enable or disable bvm console
-	BVMConsole bool
+	BVMConsole *bool
 	// Whether to enable or disable mpt table generation
-	MPTGen bool
+	MPTGen *bool
 }
 
 func setDefaults(p *XHyveParams) {
@@ -96,6 +96,23 @@ func setDefaults(p *XHyveParams) {
 
 	if p.UUID == "" {
 		p.UUID = uuid.NewV4().String()
+	}
+
+	if p.ACPI == nil {
+		p.ACPI = new(bool)
+	}
+
+	if p.RTCLocaltime == nil {
+		p.RTCLocaltime = new(bool)
+	}
+
+	if p.BVMConsole == nil {
+		p.BVMConsole = new(bool)
+	}
+
+	if p.MPTGen == nil {
+		p.MPTGen = new(bool)
+		*p.MPTGen = true
 	}
 }
 
@@ -146,18 +163,23 @@ func RunXHyve(p XHyveParams) error {
 	C.pci_irq_init()
 	C.ioapic_init()
 
-	C.rtc_init(C.int(0))
+	// Uses UTC by default.
+	var rtcmode C.int
+	if *p.RTCLocaltime {
+		rtcmode = C.int(1)
+	}
+	C.rtc_init(rtcmode)
 	C.sci_init()
 
 	if err := C.init_pci(); err != 0 {
 		return ErrInitializingPCI
 	}
 
-	if p.BVMConsole {
+	if *p.BVMConsole {
 		C.init_bvmcons()
 	}
 
-	if p.MPTGen {
+	if *p.MPTGen {
 		if err := C.mptable_build(C.int(p.Nvcpus)); err != 0 {
 			return ErrBuildingMPTTable
 		}
@@ -167,7 +189,7 @@ func RunXHyve(p XHyveParams) error {
 		return ErrBuildingSMBIOS
 	}
 
-	if p.ACPI {
+	if *p.ACPI {
 		if err := C.acpi_build(C.int(p.Nvcpus)); err != 0 {
 			return ErrBuildingACPI
 		}
