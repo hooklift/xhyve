@@ -1,6 +1,6 @@
 # NNN
 Generate ACI, OCI or Docker images without depending on centralized registries. Pull a base rootfs securely
-from any URL and build your own images.
+from any URL and build your own container images.
 
 ### Features
 * Provide friendly CLI to build and provision different types of images.
