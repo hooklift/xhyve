@@ -9,6 +9,7 @@ import "C"
 
 import (
 	"errors"
+	"runtime"
 	"strconv"
 	"unsafe"
 
@@ -118,6 +119,10 @@ func setDefaults(p *XHyveParams) {
 	}
 }
 
+func init() {
+	runtime.LockOSThread()
+}
+
 // RunXHyve runs xhyve hypervisor with the given parameters.
 func RunXHyve(p XHyveParams) error {
 	setDefaults(&p)
@@ -140,13 +145,6 @@ func RunXHyve(p XHyveParams) error {
 		}
 	}
 
-	var memsize C.size_t
-	reqMemsize := C.CString(p.Memory)
-	defer C.free(unsafe.Pointer(reqMemsize))
-	if err := C.parse_memsize(reqMemsize, &memsize); err != 0 {
-		return ErrInvalidMemsize
-	}
-
 	bootParams := C.CString(p.BootParams)
 	defer C.free(unsafe.Pointer(bootParams))
 
@@ -159,8 +157,16 @@ func RunXHyve(p XHyveParams) error {
 	}
 
 	maxVCPUs := C.num_vcpus_allowed()
-	if C.int(p.VCPUs) > maxVCPUs {
+	vcpus := C.int(p.VCPUs)
+	if vcpus > maxVCPUs {
 		return ErrMaxNumVCPUExceeded
+	}
+
+	var memsize C.size_t
+	reqMemsize := C.CString(p.Memory)
+	defer C.free(unsafe.Pointer(reqMemsize))
+	if err := C.parse_memsize(reqMemsize, &memsize); err != 0 {
+		return ErrInvalidMemsize
 	}
 
 	if err := C.xh_vm_setup_memory(memsize, C.VM_MMAP_ALL); err != 0 {
@@ -193,7 +199,7 @@ func RunXHyve(p XHyveParams) error {
 	}
 
 	if *p.MPTGen {
-		if err := C.mptable_build(C.int(p.VCPUs)); err != 0 {
+		if err := C.mptable_build(vcpus); err != 0 {
 			return ErrBuildingMPTTable
 		}
 	}
@@ -203,7 +209,7 @@ func RunXHyve(p XHyveParams) error {
 	}
 
 	if *p.ACPI {
-		if err := C.acpi_build(C.int(p.VCPUs)); err != 0 {
+		if err := C.acpi_build(vcpus); err != 0 {
 			return ErrBuildingACPI
 		}
 	}
