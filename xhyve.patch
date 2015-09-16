@@ -1,30 +1,39 @@
+diff --git a/include/xhyve/xhyve.h b/include/xhyve/xhyve.h
+index 4f85664..88039c2 100644
+--- a/include/xhyve/xhyve.h
++++ b/include/xhyve/xhyve.h
+@@ -78,3 +78,4 @@ void vcpu_add(int fromcpu, int newcpu, uint64_t rip);
+ int fbsdrun_vmexit_on_hlt(void);
+ int fbsdrun_vmexit_on_pause(void);
+ int fbsdrun_virtio_msix(void);
++static uint64_t (*fw_func)(void);
 diff --git a/src/xhyve.c b/src/xhyve.c
 index 97fd41f..2152247 100644
 --- a/src/xhyve.c
 +++ b/src/xhyve.c
 @@ -70,8 +70,6 @@
-
+ 
  #define GUEST_NIO_PORT 0x488 /* guest upcalls via i/o port */
-
+ 
 -#define MB (1024UL * 1024)
 -
  typedef int (*vmexit_handler_t)(struct vm_exit *, int *vcpu);
  extern int vmexit_task_switch(struct vm_exit *, int *vcpu);
-
+ 
 @@ -87,9 +85,6 @@ static int x2apic_mode = 0;	/* default is xAPIC */
  static int strictio;
  static int strictmsr = 1;
-
+ 
 -static int acpi;
 -
 -static char *progname;
  static const int BSP = 0;
-
+ 
  static cpuset_t cpumask;
 @@ -119,49 +114,6 @@ static struct mt_vmm_info {
-
+ 
  static uint64_t (*fw_func)(void);
-
+ 
 -__attribute__ ((noreturn)) static void
 -usage(int code)
 -{

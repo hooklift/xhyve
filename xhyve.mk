@@ -1,5 +1,7 @@
 include vendor/xhyve/config.mk
 
+XHYVE_VERSION := $(shell cd vendor/xhyve/; git describe --abbrev=6 --dirty --always --tags)
+
 VMM_SRC := \
 	vendor/xhyve/src/vmm/x86.c \
 	vendor/xhyve/src/vmm/vmm.c \
