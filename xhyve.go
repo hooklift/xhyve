@@ -16,21 +16,31 @@ import (
 
 var (
 	// ErrPCISlots is returned when an error was found parsing PCI slots.
-	ErrPCISlots = errors.New("Error parsing PCI slots")
+	ErrPCISlots = errors.New("error parsing PCI slots")
 	// ErrLPCDevice is returned when an error was found parsing LPC device options.
-	ErrLPCDevice = errors.New("Error parsing LPC devices")
+	ErrLPCDevice = errors.New("error parsing LPC devices")
 	// ErrInvalidMemsize is returned if memorize size is invalid.
-	ErrInvalidMemsize = errors.New("Invalid memory size.")
+	ErrInvalidMemsize = errors.New("invalid memory size")
 	// ErrInvalidBootParams is returne when kexec or fbsd params are invalid.
-	ErrInvalidBootParams = errors.New("Boot parameters are invalid.")
+	ErrInvalidBootParams = errors.New("boot parameters are invalid")
 	// ErrCreatingVM is returned when xhyve was unable to create the virtual machine.
-	ErrCreatingVM = errors.New("Unable to create VM.")
+	ErrCreatingVM = errors.New("unable to create VM")
 	// ErrMaxNumVCPUExceeded is returned when the number of vcpus requested for the guest
 	// exceeds the limit imposed by xhyve.
-	ErrMaxNumVCPUExceeded = errors.New("Maximum number of vcpus requested is too high")
+	ErrMaxNumVCPUExceeded = errors.New("maximum number of vcpus requested is too high")
 	// ErrSettingUpMemory is returned when an error was returned by xhyve when trying
 	// to setup guest memory.
-	ErrSettingUpMemory = errors.New("Unable to setup memory for guest vm")
+	ErrSettingUpMemory = errors.New("unable to setup memory for guest vm")
+	// ErrInitializingMSR is returned when xhyve is unable to initialize MSR table
+	ErrInitializingMSR = errors.New("unable to initialize MSR table")
+	// ErrInitializingPCI is returned when xhyve is unable to initialize PCI emulation
+	ErrInitializingPCI = errors.New("unable to initialize PCI emulation")
+	// ErrBuildingMPTTable is returned when xhyve is unable to build MPT table
+	ErrBuildingMPTTable = errors.New("unable to build MPT table")
+	// ErrBuildingSMBIOS is returned when xhyve is unable to build smbios
+	ErrBuildingSMBIOS = errors.New("unable to build smbios")
+	// ErrBuildingACPI is returned when xhyve is unable to build ACPI
+	ErrBuildingACPI = errors.New("unable to build ACPI")
 )
 
 // XHyveParams defines parameters needed by xhyve to boot up virtual machines.
@@ -53,6 +63,10 @@ type XHyveParams struct {
 	// kexec,kernel image,initrd,"cmdline"
 	// fbsd,userboot,boot volume,"kernel env"
 	BootParams string
+	// Whether to enable or disable bvm console
+	BVMConsole bool
+	// Whether to enable or disable mpt table generation
+	MPTGen bool
 }
 
 func setDefaults(p *XHyveParams) {
