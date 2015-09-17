@@ -2,8 +2,8 @@
 
 package main
 
-// #cgo CFLAGS: -I${SRCDIR}/vendor/xhyve/include -x c -std=c11 -fno-common -arch x86_64 -DXHYVE_CONFIG_ASSERT -Os -fstrict-aliasing -Weverything -Wno-unknown-warning-option -pedantic -fmessage-length=152 -fdiagnostics-show-note-include-stack -fmacro-backtrace-limit=0 -g
-// #cgo LDFLAGS: -L${SRCDIR} -lxhyve -arch x86_64 -framework Hypervisor -framework vmnet -all_load
+// #cgo CFLAGS: -I${SRCDIR}/vendor/xhyve/include -x c -std=c11 -fno-common -arch x86_64 -DXHYVE_CONFIG_ASSERT -lxhyve -Os -fstrict-aliasing -Weverything -Wno-unknown-warning-option -Wno-reserved-id-macro -pedantic -fmessage-length=152 -fdiagnostics-show-note-include-stack -fmacro-backtrace-limit=0
+// #cgo LDFLAGS: -L${SRCDIR} -lxhyve -arch x86_64 -framework Hypervisor -framework vmnet -force_load ${SRCDIR}/libxhyve.a
 // #include "helper.h"
 import "C"
 
@@ -12,9 +12,9 @@ import "C"
 import (
 	"errors"
 	"fmt"
-	"os/signal"
 	"runtime"
 	"strconv"
+	"time"
 	"unsafe"
 
 	"github.com/satori/go.uuid"
@@ -138,9 +138,12 @@ func RunXHyve(p XHyveParams) error {
 		return ErrInvalidBootParams
 	}
 
+	fmt.Print("Creating VM... ")
 	if err := C.xh_vm_create(); err != 0 {
+		fmt.Println(err)
 		return ErrCreatingVM
 	}
+	fmt.Println("done")
 
 	maxVCPUs := C.num_vcpus_allowed()
 	vcpus := C.int(p.VCPUs)
@@ -152,16 +155,23 @@ func RunXHyve(p XHyveParams) error {
 	reqMemsize := C.CString(p.Memory)
 	defer C.free(unsafe.Pointer(reqMemsize))
 	if err := C.parse_memsize(reqMemsize, &memsize); err != 0 {
+		fmt.Println(err)
 		return ErrInvalidMemsize
 	}
 
+	fmt.Printf("Setting up memory to %d bytes... ", memsize)
 	if err := C.xh_vm_setup_memory(memsize, C.VM_MMAP_ALL); err != 0 {
+		fmt.Println(err)
 		return ErrSettingUpMemory
 	}
+	fmt.Println("done")
 
+	fmt.Print("Initializing msr... ")
 	if err := C.init_msr(); err != 0 {
+		fmt.Println(err)
 		return ErrInitializingMSR
 	}
+	fmt.Println("done")
 
 	C.init_mem()
 	C.init_inout()
@@ -177,6 +187,7 @@ func RunXHyve(p XHyveParams) error {
 	C.sci_init()
 
 	if err := C.init_pci(); err != 0 {
+		fmt.Println(err)
 		return ErrInitializingPCI
 	}
 
@@ -195,19 +206,26 @@ func RunXHyve(p XHyveParams) error {
 	}
 
 	if *p.ACPI {
+		fmt.Printf("Building ACPI table for %d vcpus...", vcpus)
 		if err := C.acpi_build(vcpus); err != 0 {
 			return ErrBuildingACPI
 		}
+		fmt.Println("done")
 	}
 
 	var bsp C.int
 	var rip C.uint64_t
 	C.vcpu_add(bsp, bsp, rip)
 
-	signal.Ignore()
+	C.init_dbgport(C.int(5555))
+
+	//signal.Ignore()
 
 	fmt.Println("Starting hypervisor busy loop...")
+	time.Sleep(30 * time.Second)
+	fmt.Println("About to start hypervisor busy loop...")
 	C.mevent_dispatch()
+	fmt.Println("VM has been shutdown")
 
 	return nil
 }
