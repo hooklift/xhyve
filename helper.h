@@ -9,6 +9,7 @@
 #include <xhyve/acpi.h>
 #include <xhyve/vmm/vmm_api.h>
 #include <xhyve/inout.h>
+#include <xhyve/dbgport.h>
 #include <xhyve/mem.h>
 #include <xhyve/xmsr.h>
 #include <xhyve/pci_emul.h>
