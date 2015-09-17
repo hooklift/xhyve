@@ -88,7 +88,7 @@ build/%.o: vendor/xhyve/src/%.c
 
 $(TARGET): $(OBJ)
 	@echo "$(OK_COLOR)------> Creating $(TARGET) library...$(NO_COLOR)"
-	ar rcs $@ $(OBJ)
+	libtool -static $(OBJ) -o $@
 
 clean:
 	@rm -rf build libxhyve.a
