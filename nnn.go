@@ -98,13 +98,13 @@ func main() {
 	// }
 
 	var p XHyveParams
-	p.VCPUs = 1
-	p.Memory = "1024"
+	p.VCPUs = 2
+	p.Memory = "2048"
 	p.ACPI = new(bool)
 	*p.ACPI = true
 	p.PCIDevs = []string{"0:0,hostbridge", "2:0,virtio-net", "31,lpc"}
 	p.LPCDevs = "com1,stdio"
-	p.BootParams = `kexec,imgs/alpha.801.0.0.coreos_production_pxe.vmlinuz,imgs/stable.766.3.0.coreos_production_pxe_image.cpio.gz,"earlyprintk=serial console=ttyS0 coreos.autologin cloud-config=https://raw.githubusercontent.com/coreos/coreos-xhyve/master/cloud-init/docker-only.txt"`
+	p.BootParams = `kexec,imgs/stable.766.3.0.coreos_production_pxe.vmlinuz,imgs/stable.766.3.0.coreos_production_pxe_image.cpio.gz,"console=ttyS0 coreos.autologin debug"`
 
 	if err := RunXHyve(p); err != nil {
 		panic(err)
