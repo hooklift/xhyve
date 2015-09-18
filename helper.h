@@ -1,5 +1,4 @@
-#ifndef helpers_h
-#define helpers_h 1
+#pragma once
 
 #include <errno.h>
 #include <inttypes.h>
@@ -29,4 +28,3 @@ int firmware_parse(const char *opt);
 int parse_memsize(const char *opt, size_t *ret_memsize);
 int num_vcpus_allowed(void);
 int expand_number(const char *buf, uint64_t *num);
-#endif
