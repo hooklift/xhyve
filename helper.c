@@ -15,29 +15,29 @@ int firmware_parse(const char *opt) {
 		goto fail;
 	}
 
-		if ((cp = strchr(fw, ',')) != NULL) {
-			*cp = '\0';
-			opt1 = cp + 1;
-		} else {
-			goto fail;
-		}
+	if ((cp = strchr(fw, ',')) != NULL) {
+		*cp = '\0';
+		opt1 = cp + 1;
+	} else {
+		goto fail;
+	}
 
-		if ((cp = strchr(opt1, ',')) != NULL) {
-			*cp = '\0';
-			opt2 = cp + 1;
-		} else {
-			goto fail;
-		}
+	if ((cp = strchr(opt1, ',')) != NULL) {
+		*cp = '\0';
+		opt2 = cp + 1;
+	} else {
+		goto fail;
+	}
 
-		if ((cp = strchr(opt2, ',')) != NULL) {
-			*cp = '\0';
-			opt3 = cp + 1;
-		} else {
-			goto fail;
-		}
+	if ((cp = strchr(opt2, ',')) != NULL) {
+		*cp = '\0';
+		opt3 = cp + 1;
+	} else {
+		goto fail;
+	}
 
-		opt2 = strlen(opt2) ? opt2 : NULL;
-		opt3 = strlen(opt3) ? opt3 : NULL;
+	opt2 = strlen(opt2) ? opt2 : NULL;
+	opt3 = strlen(opt3) ? opt3 : NULL;
 
 	if (fw_func == kexec) {
 		kexec_init(opt1, opt2, opt3);
