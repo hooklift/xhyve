@@ -2,13 +2,17 @@
 
 package main
 
-// #cgo CFLAGS: -I${SRCDIR}/vendor/xhyve/include -x c -std=c11 -fno-common -arch x86_64 -DXHYVE_CONFIG_ASSERT -lxhyve -Os -fstrict-aliasing -Weverything -Wno-unknown-warning-option -Wno-reserved-id-macro -pedantic -fmessage-length=152 -fdiagnostics-show-note-include-stack -fmacro-backtrace-limit=0
+// #cgo CFLAGS: -I${SRCDIR}/vendor/xhyve/include -x c -std=c11 -fno-common -arch x86_64 -DXHYVE_CONFIG_ASSERT -lxhyve -Os -fstrict-aliasing -Wno-unknown-warning-option -Wno-reserved-id-macro -pedantic -fmessage-length=152 -fdiagnostics-show-note-include-stack -fmacro-backtrace-limit=0
 // #cgo LDFLAGS: -L${SRCDIR} -lxhyve -arch x86_64 -framework Hypervisor -framework vmnet -force_load ${SRCDIR}/libxhyve.a
 // #include "helper.h"
+//
+// // These variables are declared in xhyve.h as extern, and used in different C files.
+// int guest_ncpus;
+// char* guest_uuid_str;
+// char* vmname = "hooklift";
+//
 import "C"
 
-// -Os -flto -fstrict-aliasing -Weverything -Werror -Wno-unknown-warning-option -Wno-reserved-id-macro -pedantic -fmessage-length=152 -fdiagnostics-show-note-include-stack -fmacro-backtrace-limit=0 -fcolor-diagnostics
-// -Xlinker -object_path_lto
 import (
 	"errors"
 	"fmt"
@@ -109,11 +113,23 @@ func setDefaults(p *XHyveParams) {
 
 func init() {
 	runtime.LockOSThread()
+	//signal.Ignore()
 }
 
 // RunXHyve runs xhyve hypervisor with the given parameters.
 func RunXHyve(p XHyveParams) error {
 	setDefaults(&p)
+
+	maxVCPUs := C.num_vcpus_allowed()
+	vcpus := C.int(p.VCPUs)
+	if vcpus > maxVCPUs {
+		return ErrMaxNumVCPUExceeded
+	}
+
+	// Sets global variable inside xhyve.c to number of vcpus.
+	C.guest_ncpus = vcpus
+	C.guest_uuid_str = C.CString(p.UUID)
+	defer C.free(unsafe.Pointer(C.guest_uuid_str))
 
 	for _, d := range p.PCIDevs {
 		device := C.CString(d)
@@ -143,12 +159,6 @@ func RunXHyve(p XHyveParams) error {
 		return ErrCreatingVM
 	}
 	fmt.Println("done")
-
-	maxVCPUs := C.num_vcpus_allowed()
-	vcpus := C.int(p.VCPUs)
-	if vcpus > maxVCPUs {
-		return ErrMaxNumVCPUExceeded
-	}
 
 	var memsize C.size_t
 	reqMemsize := C.CString(p.Memory)
@@ -190,7 +200,7 @@ func RunXHyve(p XHyveParams) error {
 		return ErrInitializingPCI
 	}
 
-	//C.init_dbgport(C.int(5555))
+	C.init_dbgport(C.int(5555))
 
 	if *p.BVMConsole {
 		C.init_bvmcons()
@@ -214,15 +224,13 @@ func RunXHyve(p XHyveParams) error {
 		fmt.Println("done")
 	}
 
-	var bsp C.int
+	const bsp C.int = C.int(0)
 	var rip C.uint64_t
 	C.vcpu_add(bsp, bsp, rip)
 
-	//signal.Ignore()
-
 	fmt.Println("Starting hypervisor busy loop...")
 	C.mevent_dispatch()
-	fmt.Println("VM has been shutdown")
+	fmt.Println("VM has been shut down")
 
 	return nil
 }
