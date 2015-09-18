@@ -14,7 +14,6 @@ import (
 	"fmt"
 	"runtime"
 	"strconv"
-	"time"
 	"unsafe"
 
 	"github.com/satori/go.uuid"
@@ -191,6 +190,8 @@ func RunXHyve(p XHyveParams) error {
 		return ErrInitializingPCI
 	}
 
+	//C.init_dbgport(C.int(5555))
+
 	if *p.BVMConsole {
 		C.init_bvmcons()
 	}
@@ -217,13 +218,9 @@ func RunXHyve(p XHyveParams) error {
 	var rip C.uint64_t
 	C.vcpu_add(bsp, bsp, rip)
 
-	C.init_dbgport(C.int(5555))
-
 	//signal.Ignore()
 
 	fmt.Println("Starting hypervisor busy loop...")
-	time.Sleep(30 * time.Second)
-	fmt.Println("About to start hypervisor busy loop...")
 	C.mevent_dispatch()
 	fmt.Println("VM has been shutdown")
 
