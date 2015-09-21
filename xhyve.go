@@ -19,7 +19,7 @@ func init() {
 }
 
 // RunXHyve runs xhyve hypervisor.
-func RunXHyve2(params []string) error {
+func RunXHyve(params []string) error {
 	argc := C.int(len(params))
 	argv := make([]*C.char, argc)
 	for i, arg := range params {

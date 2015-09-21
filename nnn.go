@@ -97,7 +97,7 @@ func main() {
 	// 	os.Exit(0)
 	// }
 
-	if err := RunXHyve2(os.Args); err != nil {
+	if err := RunXHyve(os.Args); err != nil {
 		panic(err)
 	}
 
