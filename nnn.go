@@ -1,8 +1,8 @@
 package main
 
 import (
-	"flag"
 	"fmt"
+	"os"
 )
 
 // These variables are initialized in compilation time by go build.
@@ -90,23 +90,14 @@ var (
 // }
 
 func main() {
-	flag.Parse()
+	//flag.Parse()
 
 	// if len(os.Args) < 2 {
 	// 	flag.Usage()
 	// 	os.Exit(0)
 	// }
 
-	var p XHyveParams
-	p.VCPUs = 2
-	p.Memory = "2048"
-	p.ACPI = new(bool)
-	*p.ACPI = true
-	p.PCIDevs = []string{"0:0,hostbridge", "2:0,virtio-net", "31,lpc"}
-	p.LPCDevs = "com1,stdio"
-	p.BootParams = `kexec,imgs/stable.766.3.0.coreos_production_pxe.vmlinuz,imgs/stable.766.3.0.coreos_production_pxe_image.cpio.gz,"console=ttyS0 coreos.autologin debug"`
-
-	if err := RunXHyve(p); err != nil {
+	if err := RunXHyve2(os.Args); err != nil {
 		panic(err)
 	}
 
