@@ -105,7 +105,7 @@ mevent_pipe_read(int fd, UNUSED enum ev_type type, UNUSED void *param)
 	} while (status == MEVENT_MAX);
 }
 
-static void
+void
 mevent_notify(void)
 {
 	char c;
@@ -117,6 +117,12 @@ mevent_notify(void)
 	if (mevent_pipefd[1] != 0 && pthread_self() != mevent_tid) {
 		write(mevent_pipefd[1], &c, 1);
 	}
+}
+
+void mevent_exit(void)
+{
+	char c;
+	write(mevent_pipefd[1], &c, 1);
 }
 
 static int

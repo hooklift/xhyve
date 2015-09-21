@@ -1,13 +1,15 @@
 diff --git a/include/xhyve/mevent.h b/include/xhyve/mevent.h
-index 48866bd..3154402 100644
+index 48866bd..d09ed2e 100644
 --- a/include/xhyve/mevent.h
 +++ b/include/xhyve/mevent.h
-@@ -44,4 +44,4 @@ int mevent_disable(struct mevent *evp);
+@@ -43,5 +43,5 @@ int mevent_enable(struct mevent *evp);
+ int mevent_disable(struct mevent *evp);
  int mevent_delete(struct mevent *evp);
  int mevent_delete_close(struct mevent *evp);
- 
+-
 -void mevent_dispatch(void);
 +int mevent_dispatch(void);
++void mevent_exit(void);
 diff --git a/include/xhyve/xhyve.h b/include/xhyve/xhyve.h
 index 4f85664..f9ae309 100644
 --- a/include/xhyve/xhyve.h
@@ -35,7 +37,7 @@ index 4f85664..f9ae309 100644
 +int run_xhyve(int argc, char *argv[]);
 +extern void go_callback_exit(int status);
 diff --git a/src/mevent.c b/src/mevent.c
-index 34a7d0e..9cb98e4 100644
+index 34a7d0e..977abcb 100644
 --- a/src/mevent.c
 +++ b/src/mevent.c
 @@ -27,7 +27,7 @@
@@ -63,7 +65,12 @@ index 34a7d0e..9cb98e4 100644
  
  static pthread_t mevent_tid;
  static int mevent_timid = 43;
-@@ -107,7 +109,7 @@ static void
+@@ -103,11 +105,11 @@ mevent_pipe_read(int fd, UNUSED enum ev_type type, UNUSED void *param)
+ 	} while (status == MEVENT_MAX);
+ }
+ 
+-static void
++void
  mevent_notify(void)
  {
  	char c;
@@ -72,7 +79,20 @@ index 34a7d0e..9cb98e4 100644
  	/*
  	 * If calling from outside the i/o thread, write a byte on the
  	 * pipe to force the i/o thread to exit the blocking kevent call.
-@@ -309,7 +311,7 @@ mevent_update(struct mevent *evp, int newstate)
+@@ -117,6 +119,12 @@ mevent_notify(void)
+ 	}
+ }
+ 
++void mevent_exit(void)
++{
++	char c;
++	write(mevent_pipefd[1], &c, 1);
++}
++
+ static int
+ mevent_kq_filter(struct mevent *mevp)
+ {
+@@ -309,7 +317,7 @@ mevent_update(struct mevent *evp, int newstate)
  	 */
  	if (evp->me_state == newstate)
  		return (0);
@@ -81,7 +101,7 @@ index 34a7d0e..9cb98e4 100644
  	mevent_qlock();
  
  	evp->me_state = newstate;
-@@ -387,8 +389,7 @@ mevent_set_name(void)
+@@ -387,8 +395,7 @@ mevent_set_name(void)
  {
  }
  
@@ -91,7 +111,7 @@ index 34a7d0e..9cb98e4 100644
  {
  	struct kevent changelist[MEVENT_MAX];
  	struct kevent eventlist[MEVENT_MAX];
-@@ -411,7 +412,8 @@ mevent_dispatch(void)
+@@ -411,7 +418,8 @@ mevent_dispatch(void)
  	ret = pipe(mevent_pipefd);
  	if (ret < 0) {
  		perror("pipe");
@@ -101,7 +121,7 @@ index 34a7d0e..9cb98e4 100644
  	}
  
  	/*
-@@ -421,6 +423,9 @@ mevent_dispatch(void)
+@@ -421,6 +429,9 @@ mevent_dispatch(void)
  	assert(pipev != NULL);
  
  	for (;;) {
@@ -111,7 +131,7 @@ index 34a7d0e..9cb98e4 100644
  		/*
  		 * Build changelist if required.
  		 * XXX the changelist can be put into the blocking call
-@@ -442,10 +447,11 @@ mevent_dispatch(void)
+@@ -442,10 +453,11 @@ mevent_dispatch(void)
  		if (ret == -1 && errno != EINTR) {
  			perror("Error return from kevent monitor");
  		}

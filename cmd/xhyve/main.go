@@ -20,6 +20,7 @@ func init() {
 func main() {
 	done := make(chan bool)
 	go func() {
+
 		if err := xhyve.Run(os.Args); err != nil {
 			fmt.Println(err)
 		}
@@ -28,7 +29,4 @@ func main() {
 
 	<-done
 	fmt.Println("Hypervisor goroutine finished!")
-
-	// Restores stty settings
-	os.Exit(0)
 }
