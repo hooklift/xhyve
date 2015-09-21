@@ -30,4 +30,4 @@ sudo ./xhyve -m 1024M -c 1 -A -s 0:0,hostbridge -s 31,lpc \
 -f 'kexec,imgs/vmlinuz,imgs/initrd.gz,earlyprintk=serial console=ttyS0'
 ```
 
-![](https://asciinema.org/a/31xw6hl4amx8u5v453o20twf6)
+[![asciicast](https://asciinema.org/a/31xw6hl4amx8u5v453o20twf6.png)](https://asciinema.org/a/31xw6hl4amx8u5v453o20twf6)
