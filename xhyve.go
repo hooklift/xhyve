@@ -6,8 +6,6 @@ package xhyve
 // #cgo LDFLAGS: -L${SRCDIR} -arch x86_64 -framework Hypervisor -framework vmnet
 // #include <xhyve/xhyve.h>
 // #include <string.h>
-//
-// void go_callback_exit(int status);
 import "C"
 import (
 	"fmt"

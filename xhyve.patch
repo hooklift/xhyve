@@ -1,14 +1,15 @@
 diff --git a/include/xhyve/xhyve.h b/include/xhyve/xhyve.h
-index 4f85664..63a0c4c 100644
+index 4f85664..b542fe0 100644
 --- a/include/xhyve/xhyve.h
 +++ b/include/xhyve/xhyve.h
-@@ -78,3 +78,4 @@ void vcpu_add(int fromcpu, int newcpu, uint64_t rip);
+@@ -78,3 +78,5 @@ void vcpu_add(int fromcpu, int newcpu, uint64_t rip);
  int fbsdrun_vmexit_on_hlt(void);
  int fbsdrun_vmexit_on_pause(void);
  int fbsdrun_virtio_msix(void);
 +int run_xhyve(int argc, char *argv[]);
++extern void go_callback_exit(int status);
 diff --git a/src/xhyve.c b/src/xhyve.c
-index 97fd41f..d2e9b28 100644
+index 97fd41f..d78eecb 100644
 --- a/src/xhyve.c
 +++ b/src/xhyve.c
 @@ -154,7 +154,7 @@ usage(int code)
@@ -20,29 +21,34 @@ index 97fd41f..d2e9b28 100644
  		"xhyve is a port of FreeBSD's bhyve hypervisor to OS X that\n"
  		"works entirely in userspace and has no other dependencies.\n\n"
  		"Homepage: https://github.com/mist64/xhyve\n"
-@@ -519,16 +519,16 @@ vmexit_suspend(struct vm_exit *vme, int *pvcpu)
+@@ -519,16 +519,21 @@ vmexit_suspend(struct vm_exit *vme, int *pvcpu)
  
  	switch ((int) (how)) {
  	case VM_SUSPEND_RESET:
 -		exit(0);
 +		go_callback_exit(0);
++		return 0;
  	case VM_SUSPEND_POWEROFF:
 -		exit(1);
 +		go_callback_exit(1);
++		return 1;
  	case VM_SUSPEND_HALT:
 -		exit(2);
 +		go_callback_exit(2);
++		return 2;
  	case VM_SUSPEND_TRIPLEFAULT:
 -		exit(3);
 +		go_callback_exit(3);
++		return 3;
  	default:
  		fprintf(stderr, "vmexit_suspend: invalid reason %d\n", how);
 -		exit(100);
 +		go_callback_exit(100);
++		return 100;
  	}
  }
  
-@@ -774,7 +774,7 @@ fail:
+@@ -774,7 +779,7 @@ fail:
  }
  
  int
@@ -51,7 +57,7 @@ index 97fd41f..d2e9b28 100644
  {
  	int c, error, gdb_port, bvmcons, fw;
  	int dump_guest_memory, max_vcpus, mptgen;
-@@ -947,5 +947,5 @@ main(int argc, char *argv[])
+@@ -947,5 +952,5 @@ main(int argc, char *argv[])
  	 */
  	mevent_dispatch();
  
