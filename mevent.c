@@ -27,7 +27,7 @@
  */
 
 /*
- * Micro event library for FreeBSD, designed for a single i/o thread 
+ * Micro event library for FreeBSD, designed for a single i/o thread
  * using kqueue, and having events be persistent by default.
  */
 
@@ -35,6 +35,7 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include <string.h>
 #include <unistd.h>
 #include <pthread.h>
@@ -52,6 +53,7 @@
 #define	MEV_DEL_PENDING	4
 
 extern char *vmname;
+extern bool exit_mevent_dispatch_loop;
 
 static pthread_t mevent_tid;
 static int mevent_timid = 43;
@@ -107,7 +109,7 @@ static void
 mevent_notify(void)
 {
 	char c;
-	
+
 	/*
 	 * If calling from outside the i/o thread, write a byte on the
 	 * pipe to force the i/o thread to exit the blocking kevent call.
@@ -309,7 +311,7 @@ mevent_update(struct mevent *evp, int newstate)
 	 */
 	if (evp->me_state == newstate)
 		return (0);
-	
+
 	mevent_qlock();
 
 	evp->me_state = newstate;
@@ -387,8 +389,7 @@ mevent_set_name(void)
 {
 }
 
-__attribute__ ((noreturn)) void
-mevent_dispatch(void)
+int mevent_dispatch(void)
 {
 	struct kevent changelist[MEVENT_MAX];
 	struct kevent eventlist[MEVENT_MAX];
@@ -411,7 +412,8 @@ mevent_dispatch(void)
 	ret = pipe(mevent_pipefd);
 	if (ret < 0) {
 		perror("pipe");
-		exit(0);
+		return EPIPE;
+		//exit(0);
 	}
 
 	/*
@@ -421,6 +423,9 @@ mevent_dispatch(void)
 	assert(pipev != NULL);
 
 	for (;;) {
+		if (exit_mevent_dispatch_loop) {
+			break;
+		}
 		/*
 		 * Build changelist if required.
 		 * XXX the changelist can be put into the blocking call
@@ -442,10 +447,11 @@ mevent_dispatch(void)
 		if (ret == -1 && errno != EINTR) {
 			perror("Error return from kevent monitor");
 		}
-		
+
 		/*
 		 * Handle reported events
 		 */
 		mevent_handle(eventlist, ret);
-	}			
+	}
+	return 0;
 }

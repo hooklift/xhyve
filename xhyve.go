@@ -9,22 +9,26 @@ package xhyve
 import "C"
 import (
 	"fmt"
-	"os"
 	"runtime"
 	"unsafe"
 )
 
 var argv []*C.char
 
+// go_callback_exit gets called from within xhyve.c whenever a trap
+// suspending the VM is trigger. This is so we can clean up resources
+// in Go land.
 //export go_callback_exit
 func go_callback_exit(status C.int) {
-	fmt.Printf("Releasing memory in Go land... ")
+	fmt.Printf("Exiting with error code %d\n", status)
+	fmt.Printf("Releasing allocated memory from Go land... ")
 	for _, arg := range argv {
 		C.free(unsafe.Pointer(arg))
 	}
 	fmt.Println("done")
 
-	os.Exit(int(status))
+	C.exit_mevent_dispatch_loop = true
+	runtime.UnlockOSThread()
 }
 
 func init() {

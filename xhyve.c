@@ -76,6 +76,7 @@ typedef int (*vmexit_handler_t)(struct vm_exit *, int *vcpu);
 extern int vmexit_task_switch(struct vm_exit *, int *vcpu);
 
 char *vmname = "vm";
+bool exit_mevent_dispatch_loop = FALSE;
 
 int guest_ncpus;
 char *guest_uuid_str;
@@ -263,8 +264,6 @@ vcpu_thread(void *param)
 
 	vcpu_loop(vcpu, vmexit[vcpu].rip);
 
-	/* not reached */
-	exit(1);
 	return (NULL);
 }
 
@@ -620,18 +619,22 @@ vcpu_loop(int vcpu, uint64_t startrip)
 			exit(1);
 		}
 
-                rc = (*handler[exitcode])(&vmexit[vcpu], &vcpu);
+		rc = (*handler[exitcode])(&vmexit[vcpu], &vcpu);
 
 		switch (rc) {
 		case VMEXIT_CONTINUE:
 			break;
 		case VMEXIT_ABORT:
 			abort();
+		case VM_SUSPEND_HALT:
+		case VM_SUSPEND_POWEROFF:
+		case VM_SUSPEND_RESET:
+			break;
 		default:
+			fprintf(stderr, "vm_run error %d, errno %d\n", error, errno);
 			exit(1);
 		}
 	}
-	fprintf(stderr, "vm_run error %d, errno %d\n", error, errno);
 }
 
 static int
@@ -950,7 +953,7 @@ run_xhyve(int argc, char* argv[])
 	/*
 	 * Head off to the main event dispatch loop
 	 */
-	mevent_dispatch();
+	error = mevent_dispatch();
 
-	return 0;
+	return error;
 }
