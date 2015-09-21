@@ -1,21 +1,17 @@
-GHACCOUNT := hooklift
-NAME := nnn
-VERSION := v0.1.0
-
-OK_COLOR	:= \x1b[32;01m
-NO_COLOR	:= \x1b[0m
-
 include xhyve.mk
 
-CGO_LDFLAGS 	:= -ldflags "-X main.Version=$(VERSION) -X main.Name=$(NAME)"
+# Downloads xhyve files to make this library Go gettable.
+# It also applies a patch to rename the main function so we can use xhyve
+# as a library instead.
+xhyve:
+	git clone https://github.com/mist64/xhyve.git vendor/xhyve
+	-cd vendor/xhyve; patch -N -p1 < ../../xhyve.patch
+	find . \( -name \*.orig -o -name \*.rej \) -delete
+	for file in $(SRC); do \
+		cp -f $$file $$(basename $$file) ; \
+	done
 
-build: libxhyve.a
-	@echo "$(OK_COLOR)------> Running go build...$(NO_COLOR)"
-	go build -x $(CGO_LDFLAGS) -o $(NAME)
+clean:
+	rm -rf *.c vendor
 
-# This is so the linker doesn't complain given that CGO is already defining a
-# main function.
-patch-xhyve:
-	cd vendor/xhyve; patch -p1 < ../../xhyve.patch
-
-.PHONY: build
+.PHONY: xhyve clean

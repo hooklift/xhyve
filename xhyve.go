@@ -1,9 +1,9 @@
 // +build darwin
 
-package main
+package libxhyve
 
-// #cgo CFLAGS: -I${SRCDIR}/vendor/xhyve/include -x c -std=c11 -fno-common -arch x86_64 -DXHYVE_CONFIG_ASSERT -lxhyve -Os -fstrict-aliasing -Wno-unknown-warning-option -Wno-reserved-id-macro -pedantic -fmessage-length=152 -fdiagnostics-show-note-include-stack -fmacro-backtrace-limit=0
-// #cgo LDFLAGS: -L${SRCDIR} -lxhyve -arch x86_64 -framework Hypervisor -framework vmnet -force_load ${SRCDIR}/libxhyve.a
+// #cgo CFLAGS: -I${SRCDIR}/vendor/xhyve/include -x c -std=c11 -fno-common -arch x86_64 -DXHYVE_CONFIG_ASSERT -DVERSION=v0.2.0 -Os -fstrict-aliasing -Wno-unknown-warning-option -Wno-reserved-id-macro -pedantic -fmessage-length=152 -fdiagnostics-show-note-include-stack -fmacro-backtrace-limit=0
+// #cgo LDFLAGS: -L${SRCDIR} -arch x86_64 -framework Hypervisor -framework vmnet
 // #include <xhyve/xhyve.h>
 // #include <string.h>
 import "C"
@@ -15,11 +15,10 @@ import (
 
 func init() {
 	runtime.LockOSThread()
-	//signal.Ignore()
 }
 
-// RunXHyve runs xhyve hypervisor.
-func RunXHyve(params []string) error {
+// Run runs xhyve hypervisor.
+func Run(params []string) error {
 	argc := C.int(len(params))
 	argv := make([]*C.char, argc)
 	for i, arg := range params {
@@ -32,7 +31,7 @@ func RunXHyve(params []string) error {
 	}
 
 	//FIXME(c4milo): This is never reached right now due to xhyve calling
-	// exit()
+	// exit() upon VM suspension.
 	for _, arg := range argv {
 		C.free(unsafe.Pointer(arg))
 	}

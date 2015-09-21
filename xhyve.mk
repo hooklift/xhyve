@@ -1,6 +1,4 @@
-include vendor/xhyve/config.mk
-
-XHYVE_VERSION := $(shell cd vendor/xhyve/; git describe --abbrev=6 --dirty --always --tags)
+XHYVE_VERSION := $(shell cd vendor/xhyve; git describe --abbrev=6 --dirty --always --tags)
 
 VMM_SRC := \
 	vendor/xhyve/src/vmm/x86.c \
@@ -65,30 +63,3 @@ SRC := \
 	$(VMM_SRC) \
 	$(XHYVE_SRC) \
 	$(FIRMWARE_SRC)
-
-OBJ := $(SRC:vendor/xhyve/src/%.c=build/%.o)
-DEP := $(OBJ:%.o=%.d)
-INC := -Ivendor/xhyve/include
-
-CFLAGS += -DVERSION=\"$(VERSION)\"
-
-TARGET = libxhyve.a
-
-all: $(TARGET) | build
-
-.PHONY: clean all
-.SUFFIXES:
-
--include $(DEP)
-
-build/%.o: vendor/xhyve/src/%.c
-	@echo cc $<
-	@mkdir -p $(dir $@)
-	@$(ENV) $(CC) $(CFLAGS) $(INC) $(DEF) -MMD -MT $@ -MF build/$*.d -o $@ -c $<
-
-$(TARGET): $(OBJ)
-	@echo "$(OK_COLOR)------> Creating $(TARGET) library...$(NO_COLOR)"
-	libtool -static $(OBJ) -o $@
-
-clean:
-	@rm -rf build libxhyve.a
