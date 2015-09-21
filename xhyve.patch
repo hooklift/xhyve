@@ -8,7 +8,7 @@ index 4f85664..63a0c4c 100644
  int fbsdrun_virtio_msix(void);
 +int run_xhyve(int argc, char *argv[]);
 diff --git a/src/xhyve.c b/src/xhyve.c
-index 97fd41f..5d21129 100644
+index 97fd41f..d2e9b28 100644
 --- a/src/xhyve.c
 +++ b/src/xhyve.c
 @@ -154,7 +154,7 @@ usage(int code)
@@ -20,6 +20,28 @@ index 97fd41f..5d21129 100644
  		"xhyve is a port of FreeBSD's bhyve hypervisor to OS X that\n"
  		"works entirely in userspace and has no other dependencies.\n\n"
  		"Homepage: https://github.com/mist64/xhyve\n"
+@@ -519,16 +519,16 @@ vmexit_suspend(struct vm_exit *vme, int *pvcpu)
+ 
+ 	switch ((int) (how)) {
+ 	case VM_SUSPEND_RESET:
+-		exit(0);
++		go_callback_exit(0);
+ 	case VM_SUSPEND_POWEROFF:
+-		exit(1);
++		go_callback_exit(1);
+ 	case VM_SUSPEND_HALT:
+-		exit(2);
++		go_callback_exit(2);
+ 	case VM_SUSPEND_TRIPLEFAULT:
+-		exit(3);
++		go_callback_exit(3);
+ 	default:
+ 		fprintf(stderr, "vmexit_suspend: invalid reason %d\n", how);
+-		exit(100);
++		go_callback_exit(100);
+ 	}
+ }
+ 
 @@ -774,7 +774,7 @@ fail:
  }
  

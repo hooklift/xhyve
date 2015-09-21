@@ -519,16 +519,16 @@ vmexit_suspend(struct vm_exit *vme, int *pvcpu)
 
 	switch ((int) (how)) {
 	case VM_SUSPEND_RESET:
-		exit(0);
+		go_callback_exit(0);
 	case VM_SUSPEND_POWEROFF:
-		exit(1);
+		go_callback_exit(1);
 	case VM_SUSPEND_HALT:
-		exit(2);
+		go_callback_exit(2);
 	case VM_SUSPEND_TRIPLEFAULT:
-		exit(3);
+		go_callback_exit(3);
 	default:
 		fprintf(stderr, "vmexit_suspend: invalid reason %d\n", how);
-		exit(100);
+		go_callback_exit(100);
 	}
 }
 

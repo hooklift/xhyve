@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/hooklift/xhyve"
@@ -8,6 +9,6 @@ import (
 
 func main() {
 	if err := xhyve.Run(os.Args); err != nil {
-		panic(err)
+		fmt.Println(err)
 	}
 }
