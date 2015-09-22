@@ -20,7 +20,6 @@ func init() {
 func main() {
 	done := make(chan bool)
 	go func() {
-
 		if err := xhyve.Run(os.Args); err != nil {
 			fmt.Println(err)
 		}
