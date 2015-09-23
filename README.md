@@ -1,5 +1,5 @@
 # libxhyve
-Go bindings to use xhyve as a library.
+Go bindings to use [xhyve](https://github.com/mist64/xhyve) as a library.
 
 ### Install
 go get github.com/hooklift/xhyve
