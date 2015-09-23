@@ -1,7 +1,7 @@
 # libxhyve (OS X only)
 Go bindings to use [xhyve](https://github.com/mist64/xhyve) as a library.
 
-### Pre-requisites
+### Prerequisites
 * OS X Yosemite and upwards
 * Go 1.5.x
 
