@@ -79,6 +79,7 @@ char *vmname = "vm";
 bool exit_mevent_dispatch_loop = FALSE;
 
 int guest_ncpus;
+int print_mac;
 char *guest_uuid_str;
 
 static int guest_vmexit_on_hlt, guest_vmexit_on_pause;
@@ -125,7 +126,7 @@ usage(int code)
 {
 
         fprintf(stderr,
-                "Usage: %s [-behuwxACHPWY] [-c vcpus] [-g <gdb port>] [-l <lpc>]\n"
+                "Usage: %s [-behuwxMACHPWY] [-c vcpus] [-g <gdb port>] [-l <lpc>]\n"
 		"       %*s [-m mem] [-p vcpu:hostcpu] [-s <pci>] [-U uuid] -f <fw>\n"
 		"       -A: create ACPI tables\n"
 		"       -c: # cpus (default 1)\n"
@@ -135,8 +136,9 @@ usage(int code)
 		"       -g: gdb port\n"
 		"       -h: help\n"
 		"       -H: vmexit from the guest on hlt\n"
-		"       -l: LPC device configuration\n"
+		"       -l: LPC device configuration. Ex: -l com1,stdio -l com2,autopty -l com2,/dev/myownpty\n"
 		"       -m: memory size in MB\n"
+		"       -M: print MAC address and exit if using vmnet\n"
 		"       -p: pin 'vcpu' to 'hostcpu'\n"
 		"       -P: vmexit from the guest on pause\n"
 		"       -s: <slot,driver,configinfo> PCI slot config\n"
@@ -566,7 +568,7 @@ vcpu_set_capabilities(int cpu)
 			handler[VM_EXITCODE_HLT] = vmexit_hlt;
 	}
 
-		if (fbsdrun_vmexit_on_pause()) {
+        if (fbsdrun_vmexit_on_pause()) {
 		/*
 		 * pause exit support required for this mode
 		 */
@@ -774,7 +776,7 @@ firmware_parse(const char *opt) {
 	return 0;
 
 fail:
-	fprintf(stderr, "Invalid firmare argument\n"
+	fprintf(stderr, "Invalid firmware argument\n"
 		"    -f kexec,'kernel','initrd','\"cmdline\"'\n"
 		"    -f fbsd,'userboot','boot volume','\"kernel env\"'\n");
 
@@ -795,12 +797,13 @@ run_xhyve(int argc, char* argv[])
 	progname = basename(argv[0]);
 	gdb_port = 0;
 	guest_ncpus = 1;
+	print_mac = 0;
 	memsize = 256 * MB;
 	mptgen = 1;
 	rtc_localtime = 1;
 	fw = 0;
 
-	while ((c = getopt(argc, argv, "behvuwxACHPWY:f:g:c:s:m:l:U:")) != -1) {
+	while ((c = getopt(argc, argv, "behvuwxMACHPWY:f:g:c:s:m:l:U:")) != -1) {
 		switch (c) {
 		case 'A':
 			acpi = 1;
@@ -839,6 +842,9 @@ run_xhyve(int argc, char* argv[])
 			error = parse_memsize(optarg, &memsize);
 			if (error)
 				errx(EX_USAGE, "invalid memsize '%s'", optarg);
+			break;
+		case 'M':
+			print_mac = 1;
 			break;
 		case 'H':
 			guest_vmexit_on_hlt = 1;
